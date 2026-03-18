@@ -1,7 +1,7 @@
 /* Main JavaScript for Sweet Oven Bakery */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc, deleteDoc, getDocs, where } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, setDoc, updateDoc, deleteDoc, getDocs, where } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDkVQaC7NP46moG8TD_YOVaEAX6lzUTnu8",
@@ -308,10 +308,74 @@ function saveProducts() {
   localStorage.setItem('bakeryProducts', JSON.stringify(products));
   if (document.getElementById('productGrid')) renderProducts();
   if (document.getElementById('productList')) populateProductAdmin();
+
+  // Persist changes in Firestore so other devices see updates.
+  syncProductsToFirestore().catch(err => console.error('Product sync to Firestore failed', err));
+}
+
+async function syncProductsToFirestore() {
+  try {
+    const productDocs = await getDocs(collection(db, 'products'));
+    const remoteIds = new Set(productDocs.docs.map(d => d.id));
+    const localIds = new Set(products.map(p => String(p.id)));
+
+    // Update or create each local product in Firestore
+    await Promise.all(products.map(async (product) => {
+      await setDoc(doc(db, 'products', String(product.id)), {
+        ...product
+      });
+    }));
+
+    // Remove deleted local products from Firestore
+    for (const remoteId of remoteIds) {
+      if (!localIds.has(remoteId)) {
+        await deleteDoc(doc(db, 'products', remoteId));
+      }
+    }
+  } catch (err) {
+    console.error('syncProductsToFirestore:', err);
+    throw err;
+  }
 }
 
 function saveCart() {
   localStorage.setItem('bakeryCart', JSON.stringify(cart));
+}
+
+function watchProductsFromFirestore() {
+  const productsCollection = collection(db, 'products');
+  onSnapshot(productsCollection, snapshot => {
+    if (snapshot.empty) {
+      return;
+    }
+
+    const remoteProducts = snapshot.docs.map(docSnap => ({
+      ...docSnap.data(),
+      id: Number(docSnap.id) || docSnap.data().id
+    }));
+
+    products = remoteProducts;
+    localStorage.setItem('bakeryProducts', JSON.stringify(products));
+
+    if (document.getElementById('productGrid')) renderProducts();
+    if (document.getElementById('productList')) populateProductAdmin();
+  }, err => {
+    console.error('watchProductsFromFirestore error', err);
+  });
+}
+
+async function ensureFirestoreProductsSeeded() {
+  const productsCollection = collection(db, 'products');
+  const snapshot = await getDocs(productsCollection);
+  if (snapshot.empty) {
+    const initialProducts = getStoredProducts() || productData;
+    await Promise.all(initialProducts.map(product => setDoc(doc(db, 'products', String(product.id)), product)));
+  }
+}
+
+function startFirestoreProductSync() {
+  watchProductsFromFirestore();
+  ensureFirestoreProductsSeeded().catch(err => console.error('Failed to seed products in Firestore', err));
 }
 
 function createTextReceipt(order, receiptId) {
@@ -458,6 +522,7 @@ function setupIndexPage() {
   setupOrderForm();
   setupReceiptButton();
   setupCartToggle();
+  startFirestoreProductSync();
 
   document.querySelector('#clearCart').addEventListener('click', () => {
     cart = [];
@@ -781,6 +846,8 @@ function setupAdminPage() {
   loadOrderList();
   loadEventList();
 
+  startFirestoreProductSync();
+
   const logoutBtn = document.getElementById('adminLogoutBtn');
   if (logoutBtn) {
     logoutBtn.addEventListener('click', () => {
@@ -880,6 +947,7 @@ function loadOrderList() {
 
     snapshot.forEach(docSnap => {
       const order = { id: docSnap.id, ...docSnap.data() };
+      const docId = docSnap.id;
       const item = document.createElement('div');
       item.className = 'admin-item';
 
@@ -918,15 +986,14 @@ function loadOrderList() {
         const confirmed = confirm(`Mark Order #${order.orderNo} as delivered?`);
         if (!confirmed) return;
 
-        const orderId = String(order.id || '');
-        if (!orderId) {
-          console.error('Order ID is missing, cannot delete order', order);
-          alert('Unable to mark order delivered: missing order id. Please refresh.');
+        if (!docId) {
+          console.error('Firestore document ID is missing, cannot delete order', order);
+          alert('Unable to mark order delivered: missing record key. Please refresh.');
           return;
         }
 
         try {
-          await deleteDoc(doc(db, 'advanceOrders', orderId));
+          await deleteDoc(doc(db, 'advanceOrders', docId));
           // remove from UI immediately if deletion succeeded
           orderList.removeChild(item);
         } catch (err) {
