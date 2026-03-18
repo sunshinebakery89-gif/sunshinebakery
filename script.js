@@ -36,7 +36,8 @@ let latestReceiptId = null;
 function getStoredProducts() {
   try {
     const parsed = JSON.parse(localStorage.getItem('bakeryProducts'));
-    return Array.isArray(parsed) ? parsed : null;
+    if (!Array.isArray(parsed) || parsed.length === 0) return null;
+    return parsed;
   } catch (err) {
     return null;
   }
@@ -51,10 +52,35 @@ function getStoredCart() {
   }
 }
 
+async function loadProductsFromFirestore() {
+  try {
+    const productsCollection = collection(db, 'products');
+    const snapshot = await getDocs(productsCollection);
+
+    if (snapshot.empty) {
+      console.log('Firestore has no products yet');
+      return false;
+    }
+
+    products = snapshot.docs.map(docSnap => ({ ...docSnap.data(), id: Number(docSnap.id) || docSnap.data().id }));
+    localStorage.setItem('bakeryProducts', JSON.stringify(products));
+    console.log('Loaded products from Firestore', products);
+
+    if (document.getElementById('productGrid')) renderProducts();
+    if (document.getElementById('productList')) populateProductAdmin();
+
+    return true;
+  } catch (err) {
+    console.error('loadProductsFromFirestore error', err);
+    return false;
+  }
+}
+
 function syncProductsFromStorage() {
   const stored = getStoredProducts();
   products = stored || productData;
-  if (!stored) {
+  if (!stored || !stored.length) {
+    products = productData;
     localStorage.setItem('bakeryProducts', JSON.stringify(products));
   }
 
@@ -346,6 +372,11 @@ function watchProductsFromFirestore() {
   const productsCollection = collection(db, 'products');
   onSnapshot(productsCollection, snapshot => {
     if (snapshot.empty) {
+      console.log('Firestore products empty: using default products');
+      products = productData;
+      localStorage.setItem('bakeryProducts', JSON.stringify(products));
+      if (document.getElementById('productGrid')) renderProducts();
+      if (document.getElementById('productList')) populateProductAdmin();
       return;
     }
 
@@ -373,9 +404,18 @@ async function ensureFirestoreProductsSeeded() {
   }
 }
 
-function startFirestoreProductSync() {
+async function startFirestoreProductSync() {
+  try {
+    const hasRemote = await loadProductsFromFirestore();
+    if (!hasRemote) {
+      await ensureFirestoreProductsSeeded();
+      console.log('Seeded Firestore products using local data');
+    }
+  } catch (err) {
+    console.error('Error during Firestore product startup sync', err);
+  }
+
   watchProductsFromFirestore();
-  ensureFirestoreProductsSeeded().catch(err => console.error('Failed to seed products in Firestore', err));
 }
 
 function createTextReceipt(order, receiptId) {
