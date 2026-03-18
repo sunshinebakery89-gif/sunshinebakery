@@ -1,7 +1,7 @@
 /* Main JavaScript for Sweet Oven Bakery */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc, deleteDoc, getDocs, where } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDkVQaC7NP46moG8TD_YOVaEAX6lzUTnu8",
@@ -30,6 +30,8 @@ const productData = [
 
 let products;
 let cart;
+let latestOrderReceipt = null;
+let latestReceiptId = null;
 
 function getStoredProducts() {
   try {
@@ -103,6 +105,92 @@ function loadAdminCredentials() {
 
 function saveAdminCredentials(credentials) {
   localStorage.setItem('adminCredentials', JSON.stringify(credentials));
+}
+
+function isAdminLoggedIn() {
+  return localStorage.getItem('bakeryAdminLoggedIn') === 'true' || sessionStorage.getItem('bakeryAdminLoggedIn') === 'true';
+}
+
+function setAdminLoggedIn(value) {
+  const authValue = value ? 'true' : 'false';
+  localStorage.setItem('bakeryAdminLoggedIn', authValue);
+  sessionStorage.setItem('bakeryAdminLoggedIn', authValue);
+}
+
+function checkAdminLogin() {
+  const overlay = document.getElementById('adminLoginSection');
+  const adminContent = document.querySelector('.admin-main');
+  if (!overlay || !adminContent) return false;
+
+  if (isAdminLoggedIn()) {
+    overlay.style.display = 'none';
+    adminContent.style.display = 'block';
+    return true;
+  }
+
+  overlay.style.display = 'flex';
+  adminContent.style.display = 'none';
+  return false;
+}
+
+function setupAdminAuth() {
+  const loginBtn = document.getElementById('adminLoginBtn');
+  const resetBtn = document.getElementById('adminResetBtn');
+  const logoutBtn = document.getElementById('adminLogoutBtn');
+
+  if (!loginBtn) {
+    console.warn('Admin login button not found. Cannot initialize admin auth.');
+    return;
+  }
+
+  checkAdminLogin();
+
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', () => {
+      setAdminLoggedIn(false);
+      localStorage.removeItem('bakeryAdminLoggedIn');
+      sessionStorage.removeItem('bakeryAdminLoggedIn');
+      checkAdminLogin();
+      const error = document.getElementById('adminLoginError');
+      if (error) error.textContent = 'You have been logged out.';
+      document.getElementById('adminNumber').value = '';
+      document.getElementById('adminPassword').value = '';
+      console.log('Admin logout triggered.');
+    });
+  }
+
+  loginBtn.addEventListener('click', () => {
+    const number = document.getElementById('adminNumber').value.trim();
+    const password = document.getElementById('adminPassword').value;
+    const error = document.getElementById('adminLoginError');
+    const storedCreds = loadAdminCredentials();
+
+    if (!storedCreds.number || !storedCreds.password) {
+      saveAdminCredentials(defaultAdminCredentials);
+    }
+
+    if (number === storedCreds.number && password === storedCreds.password) {
+      setAdminLoggedIn(true);
+      if (error) error.textContent = '';
+      document.getElementById('adminLoginSection').style.display = 'none';
+      document.querySelector('.admin-main').style.display = 'block';
+      setupAdminPage();
+      document.getElementById('adminNumber').value = '';
+      document.getElementById('adminPassword').value = '';
+    } else {
+      if (error) error.textContent = 'Invalid number or password. Please try again.';
+    }
+  });
+
+  if (resetBtn) {
+    resetBtn.addEventListener('click', () => {
+      saveAdminCredentials(defaultAdminCredentials);
+      setAdminLoggedIn(false);
+      alert('Admin credentials have been reset to default. Please log in with the default credentials.');
+      checkAdminLogin();
+      populateAdminCredentialsForm();
+    });
+  }
 }
 
 function loadBakerySettings() {
@@ -226,6 +314,135 @@ function saveCart() {
   localStorage.setItem('bakeryCart', JSON.stringify(cart));
 }
 
+function createTextReceipt(order, receiptId) {
+  const lines = [];
+  lines.push('Sunshine Bakery Receipt');
+  lines.push(`Order No: ${receiptId}`);
+  lines.push(`Date: ${new Date().toLocaleString()}`);
+  lines.push('');
+  lines.push(`Customer: ${order.name}`);
+  lines.push(`Phone: ${order.phone}`);
+  lines.push(`Pickup Date/Time: ${order.pickupDate} ${order.pickupTime}`);
+  lines.push(`Special Request: ${order.note || 'None'}`);
+  lines.push('');
+  lines.push('Items:');
+  order.cart.forEach(item => {
+    lines.push(`- ${item.name} x${item.quantity} @ ${formatMoney(item.price)} = ${formatMoney(item.price * item.quantity)}`);
+  });
+  lines.push('');
+  lines.push(`Subtotal: ${formatMoney(order.totals.subtotal)}`);
+  lines.push(`Total: ${formatMoney(order.totals.total)}`);
+  lines.push('');
+  lines.push('Thank you for ordering from Sunshine Bakery. Enjoy your treats!');
+  return new Blob([lines.join('\n')], { type: 'text/plain' });
+}
+
+function createPdfReceipt(order, receiptId) {
+  const { jsPDF } = window.jspdf || {};
+  if (!jsPDF) throw new Error('jsPDF is not loaded');
+
+  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+  const settings = loadBakerySettings();
+  const width = 595;
+  const left = 36;
+  const right = width - 36;
+
+  doc.setFillColor(255, 173, 177);
+  doc.rect(0, 0, width, 100, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(24);
+  doc.text(settings.name || 'Sunshine Bakery', left, 42);
+  doc.setFontSize(10);
+  doc.text(settings.address || '', left, 60);
+  doc.text(`Phone: ${settings.phone || ''}`, left, 74);
+  doc.text(`Rating: ${settings.rating || ''}`, left, 88);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(0, 0, 0);
+  doc.setFontSize(12);
+  doc.text(`Order No: ${receiptId}`, left, 118);
+  doc.text(`Date: ${new Date().toLocaleString()}`, left, 132);
+  doc.text(`Customer: ${order.name}`, left, 146);
+  doc.text(`Phone: ${order.phone}`, left, 160);
+  doc.text(`Pickup: ${order.pickupDate} ${order.pickupTime}`, left, 174);
+  doc.text(`Note: ${order.note || 'None'}`, left, 188);
+
+  let y = 210;
+  doc.setFillColor(255, 230, 235);
+  doc.rect(left, y - 14, right - left, 20, 'F');
+  doc.setFontSize(11);
+  doc.setTextColor(93, 33, 45);
+  doc.text('Item', left + 4, y);
+  doc.text('Qty', 140, y, { align: 'right' });
+  doc.text('Price', 240, y, { align: 'right' });
+  doc.text('Total', 335, y, { align: 'right' });
+
+  y += 14;
+  order.cart.forEach(item => {
+    y += 18;
+    if (y > 760) { doc.addPage(); y = 40; }
+    doc.setFillColor(255, 248, 249);
+    doc.rect(left, y - 12, right - left, 18, 'F');
+    doc.setTextColor(77, 29, 37);
+    doc.text(item.name, left + 4, y);
+    doc.text(String(item.quantity), 140, y, { align: 'right' });
+    doc.text(formatMoney(item.price, 'Rs '), 240, y, { align: 'right' });
+    doc.text(formatMoney(item.price * item.quantity, 'Rs '), 335, y, { align: 'right' });
+  });
+
+  y += 24;
+  doc.setDrawColor(220, 166, 173);
+  doc.setLineWidth(1);
+  doc.line(left, y, right, y);
+  y += 12;
+  doc.setFontSize(12);
+  doc.setTextColor(137, 24, 37);
+  doc.text(`Subtotal: ${formatMoney(order.totals.subtotal, 'Rs ')}`, 335, y, { align: 'right' });
+  y += 18;
+  doc.setFontSize(14);
+  doc.setTextColor(186, 25, 37);
+  doc.text(`Total: ${formatMoney(order.totals.total, 'Rs ')}`, 335, y, { align: 'right' });
+
+  y += 26;
+  doc.setFontSize(10);
+  doc.setTextColor(79, 43, 43);
+  doc.text('Thank you for ordering from Sunshine Bakery!', left, y);
+
+  return doc.output('blob');
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+function setupReceiptButton() {
+  const btn = document.getElementById('downloadReceiptBtn');
+  if (!btn) return;
+  btn.addEventListener('click', async () => {
+    if (!latestOrderReceipt || !latestReceiptId) {
+      alert('No receipt available. Place an order first.');
+      return;
+    }
+
+    try {
+      const textBlob = createTextReceipt(latestOrderReceipt, latestReceiptId);
+      downloadBlob(textBlob, `receipt_${latestReceiptId}.txt`);
+      const pdfBlob = createPdfReceipt(latestOrderReceipt, latestReceiptId);
+      downloadBlob(pdfBlob, `receipt_${latestReceiptId}.pdf`);
+    } catch (err) {
+      console.error('Receipt generation failed', err);
+      alert('Unable to generate receipt at this time.');
+    }
+  });
+}
+
 function setupIndexPage() {
   console.log('setupIndexPage called');
   applyBakerySettings();
@@ -239,12 +456,20 @@ function setupIndexPage() {
   renderCart();
   setupEventForm();
   setupOrderForm();
+  setupReceiptButton();
   setupCartToggle();
 
   document.querySelector('#clearCart').addEventListener('click', () => {
     cart = [];
     saveCart();
     renderCart();
+    latestOrderReceipt = null;
+    latestReceiptId = null;
+    const downloadReceiptBtn = document.getElementById('downloadReceiptBtn');
+    if (downloadReceiptBtn) {
+      downloadReceiptBtn.style.display = 'none';
+      downloadReceiptBtn.disabled = true;
+    }
   });
 }
 
@@ -381,15 +606,34 @@ function formatMoney(amount, symbol = '₹') {
   return `${symbol}${numeric.toFixed(2)}`;
 }
 
-function generateOrderNumber() {
-  const key = 'bakeryLastOrderNumber';
-  let last = Number(localStorage.getItem(key));
-  if (!Number.isFinite(last) || last < 100000) {
-    last = 100000;
+async function generateOrderNumber() {
+  const now = new Date();
+  const timestampKey = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}` +
+    `_${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+
+  let hash = 0;
+  for (let i = 0; i < timestampKey.length; i++) {
+    hash = ((hash << 5) - hash) + timestampKey.charCodeAt(i);
+    hash = hash & hash;
   }
-  const next = last + 1;
-  localStorage.setItem(key, String(next));
-  return String(next);
+
+  let candidate = String(Math.abs(hash) % 900000 + 100000);
+  let tries = 0;
+
+  while (tries < 20) {
+    const q = query(collection(db, 'advanceOrders'), where('orderNo', '==', candidate));
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) {
+      return candidate;
+    }
+
+    // Already in use by an active order. Try next possible number.
+    candidate = String((Number(candidate) % 999999) + 1).padStart(6, '0');
+    tries += 1;
+  }
+
+  // Last resort stable fallback.
+  return String(Date.now());
 }
 
 function setupEventForm() {
@@ -439,7 +683,7 @@ function setupOrderForm() {
       return;
     }
 
-    const orderNo = generateOrderNumber();
+    const orderNo = await generateOrderNumber();
     const cartForOrder = cart.map(item => {
       const product = products.find(p => p.id === item.id) || item;
       return {
@@ -506,114 +750,13 @@ function setupOrderForm() {
     orderTextLines.push('');
     orderTextLines.push('Thank you for ordering from Sunshine Bakery. Enjoy your treats!');
 
-    // Text receipt
-    const receiptBlob = new Blob([orderTextLines.join('\n')], { type: 'text/plain' });
-    const receiptUrl = URL.createObjectURL(receiptBlob);
-    const downloadLink = document.createElement('a');
-    downloadLink.href = receiptUrl;
-    downloadLink.download = `receipt_${receiptId}.txt`;
-    document.body.appendChild(downloadLink);
-    downloadLink.click();
-    document.body.removeChild(downloadLink);
-    URL.revokeObjectURL(receiptUrl);
+    latestOrderReceipt = order;
+    latestReceiptId = receiptId;
 
-    // PDF receipt using jsPDF with colorful layout and structured table
-    if (window.jspdf) {
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF({ unit: 'pt', format: 'a4' });
-      const settings = loadBakerySettings();
-      const width = 595;
-      const left = 36;
-      const right = width - 36;
-
-      // header
-      doc.setFillColor(255, 173, 177);
-      doc.rect(0, 0, width, 100, 'F');
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(24);
-      doc.text(settings.name || 'Sunshine Bakery', left, 42);
-
-      doc.setFontSize(10);
-      doc.text(settings.address || '', left, 60);
-      doc.text(`Phone: ${settings.phone || ''}`, left, 74);
-      doc.text(`Rating: ${settings.rating || ''}`, left, 88);
-
-      // order details
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(0, 0, 0);
-      doc.setFontSize(12);
-      doc.text(`Order No: ${receiptId}`, left, 118);
-      doc.text(`Date: ${new Date().toLocaleString()}`, left, 132);
-      doc.text(`Customer: ${order.name}`, left, 146);
-      doc.text(`Phone: ${order.phone}`, left, 160);
-      doc.text(`Pickup: ${order.pickupDate} ${order.pickupTime}`, left, 174);
-      doc.text(`Note: ${order.note || 'None'}`, left, 188);
-
-      // table header
-      let y = 210;
-      doc.setFillColor(255, 230, 235);
-      doc.rect(left, y - 14, right - left, 20, 'F');
-      doc.setFontSize(11);
-      doc.setTextColor(93, 33, 45);
-      doc.text('Item', left + 4, y);
-      doc.text('Qty', 140, y, { align: 'right' });
-      doc.text('Price', 240, y, { align: 'right' });
-      doc.text('Total', 335, y, { align: 'right' });
-
-      // table rows
-      y += 14;
-      order.cart.forEach(item => {
-        y += 18;
-        if (y > 760) { doc.addPage(); y = 40; }
-
-        doc.setFillColor(255, 248, 249);
-        doc.rect(left, y - 12, right - left, 18, 'F');
-
-        doc.setTextColor(77, 29, 37);
-        doc.text(item.name, left + 4, y);
-        doc.text(String(item.quantity), 140, y, { align: 'right' });
-        doc.text(formatMoney(item.price, 'Rs '), 240, y, { align: 'right' });
-        doc.text(formatMoney(item.price * item.quantity, 'Rs '), 335, y, { align: 'right' });
-      });
-
-      y += 24;
-      doc.setDrawColor(220, 166, 173);
-      doc.setLineWidth(1);
-      doc.line(left, y, right, y);
-      y += 12;
-      doc.setFontSize(12);
-      doc.setTextColor(137, 24, 37);
-      doc.text(`Subtotal: ${formatMoney(order.totals.subtotal, 'Rs ')}`, 335, y, { align: 'right' });
-      y += 18;
-      doc.setFontSize(14);
-      doc.setTextColor(186, 25, 37);
-      doc.text(`Total: ${formatMoney(order.totals.total, 'Rs ')}`, 335, y, { align: 'right' });
-
-      y += 26;
-      doc.setFontSize(10);
-      doc.setTextColor(79, 43, 43);
-      doc.text('Thank you for ordering from Sunshine Bakery!', left, y);
-
-      // logo attempt
-      const logoImage = new Image();
-      logoImage.onload = () => {
-        try {
-          const canvas = document.createElement('canvas');
-          canvas.width = logoImage.width;
-          canvas.height = logoImage.height;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(logoImage, 0, 0);
-          const imgData = canvas.toDataURL('image/jpeg');
-          doc.addImage(imgData, 'JPEG', right - 100, 20, 70, 70);
-        } catch (err) {
-          /* no logo */
-        }
-        doc.save(`receipt_${receiptId}.pdf`);
-      };
-      logoImage.onerror = () => {
-        doc.save(`receipt_${receiptId}.pdf`);
-      };
-      logoImage.src = 'logo.jpeg';
+    const downloadReceiptBtn = document.getElementById('downloadReceiptBtn');
+    if (downloadReceiptBtn) {
+      downloadReceiptBtn.style.display = 'block';
+      downloadReceiptBtn.disabled = false;
     }
 
     cart = [];
@@ -774,8 +917,18 @@ function loadOrderList() {
       detailSection.querySelector('.order-delivered-btn').addEventListener('click', async () => {
         const confirmed = confirm(`Mark Order #${order.orderNo} as delivered?`);
         if (!confirmed) return;
+
+        const orderId = String(order.id || '');
+        if (!orderId) {
+          console.error('Order ID is missing, cannot delete order', order);
+          alert('Unable to mark order delivered: missing order id. Please refresh.');
+          return;
+        }
+
         try {
-          await deleteDoc(doc(db, 'advanceOrders', order.id));
+          await deleteDoc(doc(db, 'advanceOrders', orderId));
+          // remove from UI immediately if deletion succeeded
+          orderList.removeChild(item);
         } catch (err) {
           console.error('Error deleting order', err);
           alert('Unable to mark order delivered. Please try again.');
@@ -837,7 +990,10 @@ const isAdminPage = window.location.pathname.endsWith('sunshine86admin.html') ||
 
 if (isAdminPage) {
   console.log('Admin page detected');
-  setupAdminPage();
+  setupAdminAuth();
+  if (checkAdminLogin()) {
+    setupAdminPage();
+  }
 } else {
   console.log('Index page detected');
   setupIndexPage();
