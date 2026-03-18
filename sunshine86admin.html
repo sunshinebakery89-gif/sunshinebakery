@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sunshine86 Admin</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <header class="site-header" id="adminHome">
+    <div class="top-bar">
+      <div class="logo">
+        <a href="index.html" aria-label="Go to site">
+          <img src="logo.jpeg" alt="Sunshine Bakery logo" onerror="this.style.display='none'" />
+          <span class="logo-text">sunshine86admin</span>
+        </a>
+      </div>
+      <nav class="main-nav">
+        <a href="index.html">View Site</a>
+        <a href="#product-admin">Products</a>
+        <a href="#orders">Orders</a>
+        <a href="#events">Bookings</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="admin-main">
+    <section id="bakery-details-admin" class="section admin-section">
+      <h2>Bakery Information</h2>
+      <form id="bakeryDetailsForm" class="form-grid">
+        <input type="text" id="adminBakeryName" placeholder="Bakery Name" required />
+        <input type="text" id="adminBakeryAddress" placeholder="Address" required />
+        <input type="tel" id="adminBakeryPhone" placeholder="Phone" required />
+        <input type="text" id="adminBakeryHours" placeholder="Opening Hours" required />
+        <input type="text" id="adminBakeryRating" placeholder="Rating (e.g. 4.6/5)" required />
+        <button type="submit" class="btn form-action">Save Bakery Details</button>
+      </form>
+    </section>
+
+    <section id="admin-credentials" class="section admin-section">
+      <h2>Admin Access Settings</h2>
+      <form id="adminCredentialForm" class="form-grid">
+        <input type="text" id="adminNewNumber" placeholder="New Admin No" required />
+        <input type="password" id="adminNewPassword" placeholder="New Password" required />
+        <button type="submit" class="btn form-action">Update Admin Credentials</button>
+        <div id="adminCredSuccess" class="form-success"></div>
+      </form>
+    </section>
+
+    <section id="product-admin" class="section admin-section">
+      <h2>Manage Products</h2>
+      <form id="productForm" class="form-grid">
+        <input type="text" id="newProductName" placeholder="Product Name" required />
+        <input type="number" id="newProductPrice" placeholder="Price (₹)" min="0" step="0.01" required />
+        <input type="number" id="newProductStock" placeholder="Stock" min="0" required />
+        <input type="text" id="newProductImage" placeholder="Image URL" required />
+        <button type="submit" class="btn form-action">Add Product</button>
+      </form>
+      <div id="productList" class="product-grid"></div>
+    </section>
+
+    <section id="orders" class="section admin-section">
+      <h2>Advance Orders</h2>
+      <div id="orderList" class="admin-list"></div>
+    </section>
+
+    <section id="events" class="section admin-section">
+      <h2>Event Bookings</h2>
+      <div id="eventList" class="admin-list"></div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>Admin Dashboard | Sweet Oven Bakery</p>
+  </footer>
+
+  <script type="module" src="script.js"></script>
+</body>
+</html>

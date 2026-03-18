@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sunshine Bakery</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <header class="site-header" id="home">
+    <div class="top-bar">
+      <div class="logo">
+        <a href="#home" aria-label="Home">
+          <img src="logo.jpeg" alt="Sunshine Bakery logo" onerror="this.style.display='none'" />
+          <span class="logo-text" id="siteName">Sunshine Bakery</span>
+        </a>
+      </div>
+      <nav class="main-nav">
+        <a href="#home">Home</a>
+        <a href="#about">About</a>
+        <a href="#products">Products</a>
+        <a href="#event">Event Booking</a>
+        <a href="#cart">Cart</a>
+      </nav>
+    </div>
+  </header>
+
+  <section class="hero" aria-label="hero section" style="background-image: url('shop.jpeg');">
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+      <h1 id="heroTitle">Sunshine Bakery</h1>
+      <p>Fresh Cakes, Cupcakes, Cookies, Donuts & Pastries Every Day</p>
+      <div class="hero-items">Cakes • Cupcakes • Cookies • Donuts • Pastries • Sweets</div>
+      <div class="hero-buttons">
+        <a href="#products" class="btn">View Products</a>
+        <a href="#event" class="btn btn-secondary">Book Event</a>
+      </div>
+    </div>
+  </section>
+
+  <section id="about" class="about-section section">
+    <div class="container grid-two-column">
+      <div class="about-text">
+        <h2 id="aboutName">Welcome to Sunshine Bakery</h2>
+        <p id="aboutStory">At Sunshine Bakery, we craft fresh, delicious treats using premium ingredients and genuine care. Every cake, cupcake, cookie, puff, and donut is made to bring joy and celebrate your special moments.</p>
+        <p id="aboutDesc">We take pride in quality, taste, and freshness—served daily with warmth and a touch of sweetness.</p>
+        <ul class="info-list">
+          <li><strong>Address:</strong> <span id="infoAddress">Main road, Gatkesar, Yamnampet, Secunderabad, Telangana 501302</span></li>
+          <li><strong>Phone:</strong> <span id="infoPhone">9177261388</span></li>
+          <li><strong>Hours:</strong> <span id="infoHours">10:30 AM - 10:30 PM</span></li>
+          <li><strong>Rating:</strong> <span id="infoRating">4.6/5</span></li>
+        </ul>
+      </div>
+      <div class="about-media">
+        <img src="shop.jpeg" alt="Sunshine Bakery shopfront" />
+        <img src="img.jpeg" alt="bakery items" />
+      </div>
+    </div>
+    <div class="map-wrap">
+      <h3>Find Us</h3>
+      <a href="https://www.google.com/maps/search/?api=1&query=17.457540,78.656389" target="_blank" rel="noopener noreferrer" aria-label="Open location in Google Maps">
+        <iframe title="sunshine bakery map" src="https://maps.google.com/maps?q=17.457540,78.656389&z=16&output=embed" style="border:0;width:100%;height:320px;" allowfullscreen="" loading="lazy"></iframe>
+      </a>
+    </div>
+  </section>
+
+  <section id="event" class="section event-section">
+    <h2>Event Booking</h2>
+    <p>Let us create sweet memories for your special day.</p>
+    <form id="eventForm" class="form-grid">
+      <input type="text" id="eventName" placeholder="Customer Name" required />
+      <input type="tel" id="eventPhone" placeholder="Phone Number" required />
+      <input type="email" id="eventEmail" placeholder="Email" required />
+      <select id="eventType" required>
+        <option value="">Event Type</option>
+        <option>Birthday Party</option>
+        <option>Anniversary Cake</option>
+        <option>Custom Cake</option>
+        <option>Party Dessert Order</option>
+      </select>
+      <input type="date" id="eventDate" required />
+      <input type="number" id="eventGuests" min="1" placeholder="Number of Guests" required />
+      <input type="text" id="eventCake" placeholder="Cake Type" required />
+      <textarea id="eventNote" placeholder="Special Request" rows="3"></textarea>
+      <button type="submit" class="btn form-action">Submit Event Request</button>
+      <div id="eventSuccess" class="form-success"></div>
+    </form>
+  </section>
+
+  <section id="products" class="section products-section">
+    <h2>Advance Order Pickup</h2>
+    <p>Order now and pick up fresh goods in store.</p>
+    <div class="product-search-wrap" style="max-width:1160px;margin:0 auto 1rem;padding:0 1.2rem;">
+      <input type="text" id="productSearch" placeholder="Search products by name" style="width:100%;padding:0.85rem 1rem;border-radius:12px;border:1px solid #edd6cd;" />
+    </div>
+    <div id="productGrid" class="product-grid"></div>
+  </section>
+
+  <aside id="cart" class="cart-panel">
+    <div class="cart-header">
+      <h3>Your Cart</h3>
+      <button id="toggleCartBtn" class="btn btn-secondary" type="button">Hide Cart</button>
+    </div>
+    <div id="cartBody" class="cart-body">
+      <div id="cartItems"></div>
+      <div class="totals">
+      <p>Subtotal: <span id="subtotal">₹0.00</span></p>
+      <p class="total">Total: <span id="finalTotal">₹0.00</span></p>
+    </div>
+    <div class="cart-controls">
+      <button id="clearCart" class="btn btn-secondary">Clear Cart</button>
+    </div>
+    <form id="orderForm" class="form-grid" aria-label="advance order form">
+      <h4>Order Confirmation</h4>
+      <input type="text" id="orderName" placeholder="Customer Name" required />
+      <input type="tel" id="orderPhone" placeholder="Phone Number" required />
+      <input type="date" id="pickupDate" required />
+      <input type="time" id="pickupTime" required />
+      <textarea id="orderNote" placeholder="Special Request" rows="2"></textarea>
+      <button type="submit" class="btn form-action">Confirm Order</button>
+      <div id="orderSuccess" class="form-success"></div>
+    </form>
+
+  </div>
+  </aside>
+
+  <footer class="site-footer">
+    <p>&copy; 2026 Sunshine Bakery | All Rights Reserved</p>
+    <p>Call us at 9177261388</p>
+  </footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script type="module" src="script.js"></script>
+</body>
+</html
