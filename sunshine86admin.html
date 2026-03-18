@@ -23,9 +23,22 @@
         <a href="#product-admin">Products</a>
         <a href="#orders">Orders</a>
         <a href="#events">Bookings</a>
+        <button id="adminLogoutBtn" class="btn btn-secondary" type="button" style="margin-left: 0.8rem; padding: 0.4rem 0.9rem; font-size:0.9rem;">Logout</button>
       </nav>
     </div>
   </header>
+
+  <section id="adminLoginSection" class="admin-login-overlay">
+    <div class="admin-login-card">
+      <h3>Admin Login</h3>
+      <p>Enter the access code and password</p>
+      <input type="text" id="adminNumber" placeholder="Admin code" />
+      <input type="password" id="adminPassword" placeholder="Password" />
+      <button id="adminLoginBtn" class="btn" type="button">Login</button>
+      <button id="adminResetBtn" class="btn btn-secondary" type="button" style="margin-top:0.6rem;">Reset Credentials</button>
+      <p id="adminLoginError" class="login-error"></p>
+    </div>
+  </section>
 
   <main class="admin-main">
     <section id="bakery-details-admin" class="section admin-section">
@@ -74,7 +87,7 @@
   </main>
 
   <footer class="site-footer">
-    <p>Admin Dashboard | Sweet Oven Bakery</p>
+    <p>Admin Dashboard | Sunshine Bakery</p>
   </footer>
 
   <script type="module" src="script.js"></script>
