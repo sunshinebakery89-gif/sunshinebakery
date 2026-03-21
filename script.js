@@ -796,6 +796,7 @@ function renderCart() {
       if (item) {
         item.deliveryMethod = e.target.value;
         saveCart();
+        renderCart();
       }
     });
   });
@@ -956,7 +957,8 @@ function setupOrderForm() {
     orderTextLines.push('');
     orderTextLines.push('Items:');
     order.cart.forEach(item => {
-      orderTextLines.push(`- ${item.name} x${item.quantity} @ ${formatMoney(item.price)} = ${formatMoney(item.price * item.quantity)}`);
+      const itemMethod = item.deliveryMethod === 'parcel' ? 'Parcel' : 'On Spot';
+      orderTextLines.push(`- ${item.name} x${item.quantity} @ ${formatMoney(item.price)} = ${formatMoney(item.price * item.quantity)} (${itemMethod})`);
     });
 
     orderTextLines.push('');
