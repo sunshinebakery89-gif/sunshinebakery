@@ -791,8 +791,8 @@ function renderCart() {
   // Add event listeners for delivery method changes
   container.querySelectorAll('input[type="radio"]').forEach(radio => {
     radio.addEventListener('change', (e) => {
-      const id = Number(e.target.name.split('-')[1]);
-      const item = cart.find(i => i.id === id);
+      const cartId = e.target.name.split('-')[1];
+      const item = cart.find(i => i.cartItemId === cartId);
       if (item) {
         item.deliveryMethod = e.target.value;
         saveCart();
