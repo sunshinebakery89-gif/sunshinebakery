@@ -557,7 +557,7 @@ function createPdfReceipt(order, receiptId) {
   doc.rect(left, y - 14, right - left, 20, 'F');
   doc.setFontSize(11);
   doc.setTextColor(93, 33, 45);
-  doc.text('Item', left + 4, y);
+  doc.text('Item', left + 8, y);
   doc.text('Qty', 200, y, { align: 'right' });
   doc.text('Price', 280, y, { align: 'right' });
   doc.text('Total', 380, y, { align: 'right' });
