@@ -172,6 +172,9 @@ body {
 .cart-panel h3 { margin-top: 0; text-align: center; }
 .cart-item { display: grid; grid-template-columns: 1fr auto; gap: 0.6rem; align-items: center; border-bottom: 1px solid #f3dfd8; padding: 0.55rem 0; }
 .cart-item h5 { margin: 0; font-size: 0.95rem; }
+.delivery-method { margin-top: 0.4rem; display: flex; gap: 0.8rem; }
+.delivery-method label { display: flex; align-items: center; gap: 0.3rem; font-size: 0.85rem; cursor: pointer; }
+.delivery-method input[type="radio"] { margin: 0; }
 .quantity-control { display: flex; gap: 0.3rem; border: 1px solid #f2cebf; border-radius: 12px; overflow: hidden; }
 .quantity-control button { width: 30px; border: none; background: #f4d8d1; cursor: pointer; }
 .quantity-control span { min-width: 30px; text-align: center; padding: 0.3rem; }

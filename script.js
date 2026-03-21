@@ -46,7 +46,14 @@ function getStoredProducts() {
 function getStoredCart() {
   try {
     const parsed = JSON.parse(localStorage.getItem('bakeryCart'));
-    return Array.isArray(parsed) ? parsed : [];
+    if (Array.isArray(parsed)) {
+      // Ensure all cart items have deliveryMethod
+      return parsed.map(item => ({
+        ...item,
+        deliveryMethod: item.deliveryMethod || 'on-spot'
+      }));
+    }
+    return [];
   } catch (err) {
     return [];
   }
@@ -503,7 +510,8 @@ function createTextReceipt(order, receiptId) {
   lines.push('');
   lines.push('Items:');
   order.cart.forEach(item => {
-    lines.push(`- ${item.name} x${item.quantity} @ ${formatMoney(item.price)} = ${formatMoney(item.price * item.quantity)}`);
+    const deliveryText = item.deliveryMethod === 'parcel' ? ' (Parcel)' : ' (On Spot)';
+    lines.push(`- ${item.name} x${item.quantity} @ ${formatMoney(item.price)} = ${formatMoney(item.price * item.quantity)}${deliveryText}`);
   });
   lines.push('');
   lines.push(`Subtotal: ${formatMoney(order.totals.subtotal)}`);
@@ -560,7 +568,8 @@ function createPdfReceipt(order, receiptId) {
     doc.setFillColor(255, 248, 249);
     doc.rect(left, y - 12, right - left, 18, 'F');
     doc.setTextColor(77, 29, 37);
-    doc.text(item.name, left + 4, y);
+    const deliveryText = item.deliveryMethod === 'parcel' ? ' (Parcel)' : ' (On Spot)';
+    doc.text(item.name + deliveryText, left + 4, y);
     doc.text(String(item.quantity), 140, y, { align: 'right' });
     doc.text(formatMoney(item.price, 'Rs '), 240, y, { align: 'right' });
     doc.text(formatMoney(item.price * item.quantity, 'Rs '), 335, y, { align: 'right' });
@@ -708,7 +717,7 @@ function addToCart(productId) {
   if (existing) {
     if (existing.quantity < product.stock) existing.quantity += 1;
   } else {
-    cart.push({ ...product, quantity: 1 });
+    cart.push({ ...product, quantity: 1, deliveryMethod: 'on-spot' });
   }
 
   saveCart();
@@ -733,6 +742,16 @@ function renderCart() {
       <div>
         <h5>${item.name}</h5>
         <p>₹${item.price.toFixed(2)}</p>
+        <div class="delivery-method">
+          <label>
+            <input type="radio" name="delivery-${item.id}" value="on-spot" ${item.deliveryMethod === 'on-spot' ? 'checked' : ''}>
+            On Spot
+          </label>
+          <label>
+            <input type="radio" name="delivery-${item.id}" value="parcel" ${item.deliveryMethod === 'parcel' ? 'checked' : ''}>
+            Parcel
+          </label>
+        </div>
       </div>
       <div>
         <div class="quantity-control">
@@ -765,6 +784,19 @@ function renderCart() {
       renderCart();
     });
   });
+
+  // Add event listeners for delivery method changes
+  container.querySelectorAll('input[type="radio"]').forEach(radio => {
+    radio.addEventListener('change', (e) => {
+      const id = Number(e.target.name.split('-')[1]);
+      const item = cart.find(i => i.id === id);
+      if (item) {
+        item.deliveryMethod = e.target.value;
+        saveCart();
+      }
+    });
+  });
+
   updateTotals();
 }
 
@@ -869,7 +901,8 @@ function setupOrderForm() {
         id: item.id,
         name: item.name,
         price: product.price,
-        quantity: item.quantity
+        quantity: item.quantity,
+        deliveryMethod: item.deliveryMethod || 'on-spot'
       };
     });
 
@@ -1073,7 +1106,7 @@ function loadOrderList() {
       `;
 
       const summary = document.createElement('p');
-      summary.innerHTML = `Phone: ${order.phone}<br />Items: ${order.cart.map(i => `${i.name} (x${i.quantity})`).join(', ')}<br />Total: ${formatMoney(order.totals.total)}`;
+      summary.innerHTML = `Phone: ${order.phone}<br />Items: ${order.cart.map(i => `${i.name} (x${i.quantity}${i.deliveryMethod === 'parcel' ? ' - Parcel' : ' - On Spot'})`).join(', ')}<br />Total: ${formatMoney(order.totals.total)}`;
 
       const detailSection = document.createElement('div');
       detailSection.className = 'order-details';
@@ -1081,7 +1114,7 @@ function loadOrderList() {
       detailSection.innerHTML = `
         <p>Pickup Date/Time: ${order.pickupDate} ${order.pickupTime}</p>
         <p>Note: ${order.note || 'None'}</p>
-        <ul>${order.cart.map(i => `<li>${i.name} x${i.quantity} @ ${formatMoney(i.price)}</li>`).join('')}</ul>
+        <ul>${order.cart.map(i => `<li>${i.name} x${i.quantity} @ ${formatMoney(i.price)} ${i.deliveryMethod === 'parcel' ? '(Parcel)' : '(On Spot)'}</li>`).join('')}</ul>
         <p>Subtotal: ${formatMoney(order.totals.subtotal)}</p>
         <p>Total: ${formatMoney(order.totals.total)}</p>
         <button class="btn btn-secondary order-delivered-btn" type="button">Order Delivered</button>
