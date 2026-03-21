@@ -558,9 +558,9 @@ function createPdfReceipt(order, receiptId) {
   doc.setFontSize(11);
   doc.setTextColor(93, 33, 45);
   doc.text('Item', left + 4, y);
-  doc.text('Qty', 140, y, { align: 'right' });
-  doc.text('Price', 240, y, { align: 'right' });
-  doc.text('Total', 335, y, { align: 'right' });
+  doc.text('Qty', 200, y, { align: 'right' });
+  doc.text('Price', 280, y, { align: 'right' });
+  doc.text('Total', 380, y, { align: 'right' });
 
   y += 14;
   order.cart.forEach(item => {
@@ -570,10 +570,14 @@ function createPdfReceipt(order, receiptId) {
     doc.rect(left, y - 12, right - left, 18, 'F');
     doc.setTextColor(77, 29, 37);
     const deliveryText = item.deliveryMethod === 'parcel' ? ' (Parcel)' : ' (On Spot)';
-    doc.text(item.name + deliveryText, left + 4, y);
-    doc.text(String(item.quantity), 140, y, { align: 'right' });
-    doc.text(formatMoney(item.price, 'Rs '), 240, y, { align: 'right' });
-    doc.text(formatMoney(item.price * item.quantity, 'Rs '), 335, y, { align: 'right' });
+    const itemText = item.name + deliveryText;
+    // Truncate item name if too long to fit in column
+    const maxItemLength = 25; // Approximate characters that fit
+    const truncatedItem = itemText.length > maxItemLength ? itemText.substring(0, maxItemLength) + '...' : itemText;
+    doc.text(truncatedItem, left + 4, y);
+    doc.text(String(item.quantity), 200, y, { align: 'right' });
+    doc.text(formatMoney(item.price, 'Rs '), 280, y, { align: 'right' });
+    doc.text(formatMoney(item.price * item.quantity, 'Rs '), 380, y, { align: 'right' });
   });
 
   y += 24;
