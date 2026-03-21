@@ -47,10 +47,11 @@ function getStoredCart() {
   try {
     const parsed = JSON.parse(localStorage.getItem('bakeryCart'));
     if (Array.isArray(parsed)) {
-      // Ensure all cart items have deliveryMethod
+      // Ensure all cart items have deliveryMethod and cartItemId
       return parsed.map(item => ({
         ...item,
-        deliveryMethod: item.deliveryMethod || 'on-spot'
+        deliveryMethod: item.deliveryMethod || 'on-spot',
+        cartItemId: item.cartItemId || `${Date.now()}-${Math.random().toString(36).slice(2)}`
       }));
     }
     return [];
@@ -713,12 +714,14 @@ function addToCart(productId) {
   const product = products.find(p => p.id === productId);
   if (!product || product.stock === 0) return;
 
-  const existing = cart.find(item => item.id === productId);
-  if (existing) {
-    if (existing.quantity < product.stock) existing.quantity += 1;
-  } else {
-    cart.push({ ...product, quantity: 1, deliveryMethod: 'on-spot' });
-  }
+  const cartItem = {
+    ...product,
+    quantity: 1,
+    deliveryMethod: 'on-spot',
+    cartItemId: `${Date.now()}-${Math.random().toString(36).slice(2)}`
+  };
+
+  cart.push(cartItem);
 
   saveCart();
   renderCart();
@@ -744,22 +747,22 @@ function renderCart() {
         <p>₹${item.price.toFixed(2)}</p>
         <div class="delivery-method">
           <label>
-            <input type="radio" name="delivery-${item.id}" value="on-spot" ${item.deliveryMethod === 'on-spot' ? 'checked' : ''}>
+            <input type="radio" name="delivery-${item.cartItemId}" value="on-spot" ${item.deliveryMethod === 'on-spot' ? 'checked' : ''}>
             On Spot
           </label>
           <label>
-            <input type="radio" name="delivery-${item.id}" value="parcel" ${item.deliveryMethod === 'parcel' ? 'checked' : ''}>
+            <input type="radio" name="delivery-${item.cartItemId}" value="parcel" ${item.deliveryMethod === 'parcel' ? 'checked' : ''}>
             Parcel
           </label>
         </div>
       </div>
       <div>
         <div class="quantity-control">
-          <button data-action="decrease" data-id="${item.id}">-</button>
+          <button data-action="decrease" data-cartid="${item.cartItemId}">-</button>
           <span>${item.quantity}</span>
-          <button data-action="increase" data-id="${item.id}">+</button>
+          <button data-action="increase" data-cartid="${item.cartItemId}">+</button>
         </div>
-        <button class="btn-sm btn-delete" data-action="remove" data-id="${item.id}">Remove</button>
+        <button class="btn-sm btn-delete" data-action="remove" data-cartid="${item.cartItemId}">Remove</button>
       </div>
     `;
     container.appendChild(row);
@@ -767,17 +770,17 @@ function renderCart() {
 
   container.querySelectorAll('button[data-action]').forEach(btn => {
     const action = btn.dataset.action;
-    const id = Number(btn.dataset.id);
+    const cartId = btn.dataset.cartid;
     btn.addEventListener('click', () => {
-      const item = cart.find(i => i.id === id);
+      const item = cart.find(i => i.cartItemId === cartId);
       if (!item) return;
       if (action === 'increase') {
-        const product = products.find(p => p.id === id);
+        const product = products.find(p => p.id === item.id);
         if (item.quantity < (product?.stock || 0)) item.quantity += 1;
       } else if (action === 'decrease') {
         item.quantity -= 1;
       } else if (action === 'remove') {
-        cart = cart.filter(i => i.id !== id);
+        cart = cart.filter(i => i.cartItemId !== cartId);
       }
       cart = cart.filter(i => i.quantity > 0);
       saveCart();
