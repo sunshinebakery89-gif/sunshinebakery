@@ -129,8 +129,40 @@ function loadAdminCredentials() {
   return JSON.parse(localStorage.getItem('adminCredentials')) || defaultAdminCredentials;
 }
 
+async function loadAdminCredentialsFromFirestore() {
+  try {
+    const credsDoc = await getDocs(collection(db, 'adminCredentials'));
+    if (!credsDoc.empty) {
+      const data = credsDoc.docs[0].data();
+      const credentials = {
+        number: data.number || defaultAdminCredentials.number,
+        password: data.password || defaultAdminCredentials.password
+      };
+      // Cache in localStorage for offline access
+      localStorage.setItem('adminCredentials', JSON.stringify(credentials));
+      return credentials;
+    }
+  } catch (err) {
+    console.error('Error loading admin credentials from Firestore:', err);
+  }
+  // Fallback to localStorage
+  return loadAdminCredentials();
+}
+
 function saveAdminCredentials(credentials) {
   localStorage.setItem('adminCredentials', JSON.stringify(credentials));
+}
+
+async function saveAdminCredentialsToFirestore(credentials) {
+  try {
+    const credsCollection = collection(db, 'adminCredentials');
+    const credsDoc = await getDocs(credsCollection);
+    const docId = credsDoc.empty ? 'credentials' : credsDoc.docs[0].id;
+    await setDoc(doc(db, 'adminCredentials', docId), credentials);
+    console.log('Admin credentials saved to Firestore');
+  } catch (err) {
+    console.error('Error saving admin credentials to Firestore:', err);
+  }
 }
 
 function isAdminLoggedIn() {
@@ -185,14 +217,16 @@ function setupAdminAuth() {
     });
   }
 
-  loginBtn.addEventListener('click', () => {
+  loginBtn.addEventListener('click', async () => {
     const number = document.getElementById('adminNumber').value.trim();
     const password = document.getElementById('adminPassword').value;
     const error = document.getElementById('adminLoginError');
-    const storedCreds = loadAdminCredentials();
+    
+    // Load latest credentials from Firestore
+    const storedCreds = await loadAdminCredentialsFromFirestore();
 
     if (!storedCreds.number || !storedCreds.password) {
-      saveAdminCredentials(defaultAdminCredentials);
+      await saveAdminCredentialsToFirestore(defaultAdminCredentials);
     }
 
     if (number === storedCreds.number && password === storedCreds.password) {
@@ -200,7 +234,7 @@ function setupAdminAuth() {
       if (error) error.textContent = '';
       document.getElementById('adminLoginSection').style.display = 'none';
       document.querySelector('.admin-main').style.display = 'block';
-      setupAdminPage();
+      await setupAdminPage();
       document.getElementById('adminNumber').value = '';
       document.getElementById('adminPassword').value = '';
     } else {
@@ -209,12 +243,13 @@ function setupAdminAuth() {
   });
 
   if (resetBtn) {
-    resetBtn.addEventListener('click', () => {
+    resetBtn.addEventListener('click', async () => {
       saveAdminCredentials(defaultAdminCredentials);
+      await saveAdminCredentialsToFirestore(defaultAdminCredentials);
       setAdminLoggedIn(false);
       alert('Admin credentials have been reset to default. Please log in with the default credentials.');
       checkAdminLogin();
-      populateAdminCredentialsForm();
+      await populateAdminCredentialsForm();
     });
   }
 }
@@ -229,8 +264,42 @@ function loadBakerySettings() {
   };
 }
 
+async function loadBakerySettingsFromFirestore() {
+  try {
+    const settingsDoc = await getDocs(collection(db, 'settings'));
+    if (!settingsDoc.empty) {
+      const data = settingsDoc.docs[0].data();
+      const settings = {
+        ...defaultBakerySettings,
+        ...data,
+        story: data.story || defaultBakerySettings.story,
+        desc: data.desc || defaultBakerySettings.desc
+      };
+      // Cache in localStorage for offline access
+      localStorage.setItem('bakerySettings', JSON.stringify(settings));
+      return settings;
+    }
+  } catch (err) {
+    console.error('Error loading bakery settings from Firestore:', err);
+  }
+  // Fallback to localStorage
+  return loadBakerySettings();
+}
+
 function saveBakerySettings(settings) {
   localStorage.setItem('bakerySettings', JSON.stringify(settings));
+}
+
+async function saveBakerySettingsToFirestore(settings) {
+  try {
+    const settingsCollection = collection(db, 'settings');
+    const settingsDoc = await getDocs(settingsCollection);
+    const docId = settingsDoc.empty ? 'bakery' : settingsDoc.docs[0].id;
+    await setDoc(doc(db, 'settings', docId), settings);
+    console.log('Bakery settings saved to Firestore');
+  } catch (err) {
+    console.error('Error saving bakery settings to Firestore:', err);
+  }
 }
 
 function applyBakerySettings() {
@@ -265,8 +334,8 @@ function applyBakerySettings() {
   }
 }
 
-function populateBakeryAdminForm() {
-  const settings = loadBakerySettings();
+async function populateBakeryAdminForm() {
+  const settings = await loadBakerySettingsFromFirestore();
   const title = document.getElementById('adminBakeryName');
   const address = document.getElementById('adminBakeryAddress');
   const phone = document.getElementById('adminBakeryPhone');
@@ -284,7 +353,7 @@ function setupBakeryAdminSave() {
   const form = document.getElementById('bakeryDetailsForm');
   if (!form) return;
 
-  form.addEventListener('submit', (e) => {
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const currentSettings = loadBakerySettings();
     const settings = {
@@ -299,13 +368,14 @@ function setupBakeryAdminSave() {
     };
 
     saveBakerySettings(settings);
+    await saveBakerySettingsToFirestore(settings);
     applyBakerySettings();
     alert('Bakery details saved successfully.');
   });
 }
 
-function populateAdminCredentialsForm() {
-  const creds = loadAdminCredentials();
+async function populateAdminCredentialsForm() {
+  const creds = await loadAdminCredentialsFromFirestore();
   const number = document.getElementById('adminNewNumber');
   const password = document.getElementById('adminNewPassword');
   if (number) number.value = creds.number;
@@ -316,14 +386,16 @@ function setupAdminCredentialSave() {
   const form = document.getElementById('adminCredentialForm');
   if (!form) return;
 
-  form.addEventListener('submit', (e) => {
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const number = document.getElementById('adminNewNumber').value.trim();
     const password = document.getElementById('adminNewPassword').value;
     const success = document.getElementById('adminCredSuccess');
 
     if (number && password) {
-      saveAdminCredentials({ number, password });
+      const credentials = { number, password };
+      saveAdminCredentials(credentials);
+      await saveAdminCredentialsToFirestore(credentials);
       if (success) success.textContent = 'Admin credentials updated successfully.';
       setTimeout(() => { if (success) success.textContent = ''; }, 4000);
     }
@@ -547,8 +619,10 @@ function setupReceiptButton() {
   });
 }
 
-function setupIndexPage() {
+async function setupIndexPage() {
   console.log('setupIndexPage called');
+  // Load latest bakery settings from Firestore
+  const settings = await loadBakerySettingsFromFirestore();
   applyBakerySettings();
   renderProducts();
 
@@ -876,11 +950,11 @@ function setupOrderForm() {
   });
 }
 
-function setupAdminPage() {
+async function setupAdminPage() {
   applyBakerySettings();
-  populateBakeryAdminForm();
+  await populateBakeryAdminForm();
   setupBakeryAdminSave();
-  populateAdminCredentialsForm();
+  await populateAdminCredentialsForm();
   setupAdminCredentialSave();
   populateProductAdmin();
   loadOrderList();
@@ -1091,17 +1165,19 @@ function loadEventList() {
 }
 
 // Initialize based on page
-const isAdminPage = window.location.pathname.endsWith('sunshine86admin.html') ||
-  window.location.pathname.endsWith('/sunshine86admin.html') ||
-  window.location.pathname.endsWith('admin.html');
+(async () => {
+  const isAdminPage = window.location.pathname.endsWith('sunshine86admin.html') ||
+    window.location.pathname.endsWith('/sunshine86admin.html') ||
+    window.location.pathname.endsWith('admin.html');
 
-if (isAdminPage) {
-  console.log('Admin page detected');
-  setupAdminAuth();
-  if (checkAdminLogin()) {
-    setupAdminPage();
+  if (isAdminPage) {
+    console.log('Admin page detected');
+    setupAdminAuth();
+    if (checkAdminLogin()) {
+      await setupAdminPage();
+    }
+  } else {
+    console.log('Index page detected');
+    await setupIndexPage();
   }
-} else {
-  console.log('Index page detected');
-  setupIndexPage();
-}
+})();
