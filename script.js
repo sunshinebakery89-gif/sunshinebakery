@@ -51,7 +51,7 @@ function getStoredCart() {
       return parsed.map(item => ({
         ...item,
         deliveryMethod: item.deliveryMethod || 'on-spot',
-        cartItemId: item.cartItemId || `${Date.now()}-${Math.random().toString(36).slice(2)}`
+        cartItemId: item.cartItemId || `${Date.now()}_${Math.random().toString(36).slice(2)}`
       }));
     }
     return [];
@@ -718,7 +718,7 @@ function addToCart(productId) {
     ...product,
     quantity: 1,
     deliveryMethod: 'on-spot',
-    cartItemId: `${Date.now()}-${Math.random().toString(36).slice(2)}`
+    cartItemId: `${Date.now()}_${Math.random().toString(36).slice(2)}`
   };
 
   cart.push(cartItem);
@@ -791,7 +791,7 @@ function renderCart() {
   // Add event listeners for delivery method changes
   container.querySelectorAll('input[type="radio"]').forEach(radio => {
     radio.addEventListener('change', (e) => {
-      const cartId = e.target.name.split('-')[1];
+      const cartId = e.target.name.substring('delivery-'.length);
       const item = cart.find(i => i.cartItemId === cartId);
       if (item) {
         item.deliveryMethod = e.target.value;
