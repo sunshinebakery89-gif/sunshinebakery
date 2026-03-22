@@ -779,8 +779,7 @@ function renderCart() {
       const item = cart.find(i => i.cartItemId === cartId);
       if (!item) return;
       if (action === 'increase') {
-        const product = products.find(p => p.id === item.id);
-        if (item.quantity < (product?.stock || 0)) item.quantity += 1;
+        item.quantity += 1;
       } else if (action === 'decrease') {
         item.quantity -= 1;
       } else if (action === 'remove') {
@@ -941,11 +940,7 @@ function setupOrderForm() {
       return;
     }
 
-    cart.forEach(item => {
-      const product = products.find(p => p.id === item.id);
-      if (product) product.stock = Math.max(0, product.stock - item.quantity);
-    });
-    saveProducts();
+
 
     const receiptId = order.orderNo;
 
