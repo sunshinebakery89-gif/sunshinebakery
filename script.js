@@ -987,6 +987,91 @@ function setupOrderForm() {
   });
 }
 
+async function showStockStatusDialog() {
+  return new Promise(resolve => {
+    const dialog = document.createElement('div');
+    dialog.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 10000;
+    `;
+    
+    const box = document.createElement('div');
+    box.style.cssText = `
+      background-color: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+      text-align: center;
+      max-width: 400px;
+      font-family: Poppins, sans-serif;
+    `;
+    
+    const title = document.createElement('h3');
+    title.textContent = 'Select Stock Status';
+    title.style.cssText = `
+      margin: 0 0 20px 0;
+      color: #5a3a37;
+      font-size: 18px;
+    `;
+    
+    const buttonContainer = document.createElement('div');
+    buttonContainer.style.cssText = `
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+    `;
+    
+    const inStockBtn = document.createElement('button');
+    inStockBtn.textContent = 'IN STOCK';
+    inStockBtn.style.cssText = `
+      padding: 12px 30px;
+      background-color: #5a8e5a;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 14px;
+    `;
+    inStockBtn.addEventListener('click', () => {
+      document.body.removeChild(dialog);
+      resolve(1);
+    });
+    
+    const outOfStockBtn = document.createElement('button');
+    outOfStockBtn.textContent = 'OUT OF STOCK';
+    outOfStockBtn.style.cssText = `
+      padding: 12px 30px;
+      background-color: #ba1925;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 14px;
+    `;
+    outOfStockBtn.addEventListener('click', () => {
+      document.body.removeChild(dialog);
+      resolve(0);
+    });
+    
+    buttonContainer.appendChild(inStockBtn);
+    buttonContainer.appendChild(outOfStockBtn);
+    box.appendChild(title);
+    box.appendChild(buttonContainer);
+    dialog.appendChild(box);
+    document.body.appendChild(dialog);
+  });
+}
+
 async function setupAdminPage() {
   applyBakerySettings();
   await populateBakeryAdminForm();
@@ -1073,7 +1158,7 @@ function populateProductAdmin() {
   list.querySelectorAll('button[data-action]').forEach(btn => {
     const action = btn.dataset.action;
     const id = Number(btn.dataset.id);
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', async () => {
       if (action === 'delete') {
         products = products.filter(p => p.id !== id);
         saveProducts();
@@ -1083,9 +1168,9 @@ function populateProductAdmin() {
         const target = products.find(p => p.id === id);
         if (!target) return;
         const newPrice = parseFloat(prompt('Set new price', target.price));
-        const isInStock = confirm('Is this product IN STOCK? (OK=Yes, Cancel=No)');
         if (!Number.isNaN(newPrice)) target.price = newPrice;
-        target.stock = isInStock ? 1 : 0;
+        const stockStatus = await showStockStatusDialog();
+        target.stock = stockStatus;
         saveProducts();
         populateProductAdmin();
         renderProducts();
