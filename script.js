@@ -1055,7 +1055,6 @@ function populateProductAdmin() {
       <img src="${item.image}" alt="${item.name}" />
       <h4>${item.name}</h4>
       <p>Price: ₹<span class="price-text">${item.price.toFixed(2)}</span></p>
-      <p>Stock: <span class="stock-text">${item.stock}</span></p>
       <div class="admin-controls">
         <button class="admin-btn btn-edit" data-action="edit" data-id="${item.id}">Edit</button>
         <button class="admin-btn btn-delete" data-action="delete" data-id="${item.id}">Remove</button>
