@@ -18,14 +18,14 @@ const db = getFirestore(app);
 console.log('script.js loaded:', window.location.href);
 
 const productData = [
-  { id: 1, name: 'Chocolate Cake', price: 2150, stock: 7, image: 'https://images.unsplash.com/photo-1551024601-bec78aea704b?auto=format&fit=crop&w=800&q=80' },
-  { id: 2, name: 'Red Velvet Cake', price: 2350, stock: 4, image: 'https://images.unsplash.com/photo-1514986888952-8cd320577b22?auto=format&fit=crop&w=800&q=80' },
-  { id: 3, name: 'Cupcake', price: 160, stock: 12, image: 'https://images.unsplash.com/photo-1499636136210-6f4ee915583e?auto=format&fit=crop&w=800&q=80' },
-  { id: 4, name: 'Donut', price: 120, stock: 7, image: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=800&q=80' },
-  { id: 5, name: 'Brownie', price: 180, stock: 10, image: 'https://images.unsplash.com/photo-1589302168068-964664d93dc0?auto=format&fit=crop&w=800&q=80' },
-  { id: 6, name: 'Pastry', price: 220, stock: 5, image: 'https://images.unsplash.com/photo-1561214115-aa58fbf4ec62?auto=format&fit=crop&w=800&q=80' },
-  { id: 7, name: 'Cookies', price: 110, stock: 8, image: 'https://images.unsplash.com/photo-1559628238-0e62fb79fde5?auto=format&fit=crop&w=800&q=80' },
-  { id: 8, name: 'Macaron', price: 140, stock: 3, image: 'https://images.unsplash.com/photo-1511690743698-d9d85f2fbf38?auto=format&fit=crop&w=800&q=80' }
+  { id: 1, name: 'Chocolate Cake', price: 2150, stock: 1, image: 'https://images.unsplash.com/photo-1551024601-bec78aea704b?auto=format&fit=crop&w=800&q=80' },
+  { id: 2, name: 'Red Velvet Cake', price: 2350, stock: 1, image: 'https://images.unsplash.com/photo-1514986888952-8cd320577b22?auto=format&fit=crop&w=800&q=80' },
+  { id: 3, name: 'Cupcake', price: 160, stock: 1, image: 'https://images.unsplash.com/photo-1499636136210-6f4ee915583e?auto=format&fit=crop&w=800&q=80' },
+  { id: 4, name: 'Donut', price: 120, stock: 1, image: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=800&q=80' },
+  { id: 5, name: 'Brownie', price: 180, stock: 1, image: 'https://images.unsplash.com/photo-1589302168068-964664d93dc0?auto=format&fit=crop&w=800&q=80' },
+  { id: 6, name: 'Pastry', price: 220, stock: 1, image: 'https://images.unsplash.com/photo-1561214115-aa58fbf4ec62?auto=format&fit=crop&w=800&q=80' },
+  { id: 7, name: 'Cookies', price: 110, stock: 1, image: 'https://images.unsplash.com/photo-1559628238-0e62fb79fde5?auto=format&fit=crop&w=800&q=80' },
+  { id: 8, name: 'Macaron', price: 140, stock: 1, image: 'https://images.unsplash.com/photo-1511690743698-d9d85f2fbf38?auto=format&fit=crop&w=800&q=80' }
 ];
 
 let products;
@@ -1076,9 +1076,9 @@ function populateProductAdmin() {
         const target = products.find(p => p.id === id);
         if (!target) return;
         const newPrice = parseFloat(prompt('Set new price', target.price));
-        const newStock = parseInt(prompt('Set new stock quantity', target.stock), 10);
+        const isInStock = confirm('Is this product IN STOCK? (OK=Yes, Cancel=No)');
         if (!Number.isNaN(newPrice)) target.price = newPrice;
-        if (!Number.isNaN(newStock)) target.stock = newStock;
+        target.stock = isInStock ? 1 : 0;
         saveProducts();
         populateProductAdmin();
         renderProducts();

@@ -69,7 +69,11 @@
       <form id="productForm" class="form-grid">
         <input type="text" id="newProductName" placeholder="Product Name" required />
         <input type="number" id="newProductPrice" placeholder="Price (₹)" min="0" step="0.01" required />
-        <input type="number" id="newProductStock" placeholder="Stock" min="0" required />
+        <select id="newProductStock" required>
+          <option value="">Select Status</option>
+          <option value="1">IN STOCK</option>
+          <option value="0">OUT OF STOCK</option>
+        </select>
         <input type="text" id="newProductImage" placeholder="Image URL" required />
         <button type="submit" class="btn form-action">Add Product</button>
       </form>
