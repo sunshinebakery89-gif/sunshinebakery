@@ -70,7 +70,17 @@ async function loadProductsFromFirestore() {
       return false;
     }
 
-    products = snapshot.docs.map(docSnap => ({ ...docSnap.data(), id: Number(docSnap.id) || docSnap.data().id }));
+    // Load products and enforce binary stock values
+    products = snapshot.docs.map(docSnap => {
+      const data = docSnap.data();
+      return {
+        id: Number(docSnap.id) || data.id,
+        name: data.name,
+        price: data.price,
+        image: data.image,
+        stock: data.stock === 0 ? 0 : 1  // Enforce binary stock
+      };
+    });
     localStorage.setItem('bakeryProducts', JSON.stringify(products));
     console.log('Loaded products from Firestore', products);
 
@@ -466,10 +476,17 @@ function watchProductsFromFirestore() {
       return;
     }
 
-    const remoteProducts = snapshot.docs.map(docSnap => ({
-      ...docSnap.data(),
-      id: Number(docSnap.id) || docSnap.data().id
-    }));
+    // Load products and enforce binary stock values
+    const remoteProducts = snapshot.docs.map(docSnap => {
+      const data = docSnap.data();
+      return {
+        id: Number(docSnap.id) || data.id,
+        name: data.name,
+        price: data.price,
+        image: data.image,
+        stock: data.stock === 0 ? 0 : 1  // Enforce binary stock
+      };
+    });
 
     products = remoteProducts;
     localStorage.setItem('bakeryProducts', JSON.stringify(products));
@@ -506,6 +523,20 @@ async function startFirestoreProductSync() {
     if (!hasRemote) {
       await ensureFirestoreProductsSeeded();
       console.log('Seeded Firestore products using local data');
+    } else {
+      // Clean up existing Firebase data to ensure binary stock values
+      console.log('Cleaning up Firestore products to enforce binary stock...');
+      await Promise.all(products.map(product => {
+        const cleanProduct = {
+          id: product.id,
+          name: product.name,
+          price: product.price,
+          image: product.image,
+          stock: product.stock === 0 ? 0 : 1
+        };
+        return setDoc(doc(db, 'products', String(product.id)), cleanProduct);
+      }));
+      console.log('Firestore products cleaned and updated');
     }
   } catch (err) {
     console.error('Error during Firestore product startup sync', err);
