@@ -1019,19 +1019,31 @@ async function setupAdminPage() {
       const price = parseFloat(document.getElementById('newProductPrice').value);
       const stock = parseInt(document.getElementById('newProductStock').value, 10);
       const image = document.getElementById('newProductImage').value.trim();
-      if (name && !Number.isNaN(price) && !Number.isNaN(stock) && image) {
-        const newItem = {
-          id: Date.now(),
-          name,
-          price,
-          stock,
-          image
-        };
-        products.push(newItem);
-        saveProducts();
-        populateProductAdmin();
-        form.reset();
+      
+      if (!name || !image) {
+        alert('Please fill in all fields');
+        return;
       }
+      if (Number.isNaN(price) || price < 0) {
+        alert('Please enter a valid price');
+        return;
+      }
+      if (Number.isNaN(stock)) {
+        alert('Please select a stock status (IN STOCK or OUT OF STOCK)');
+        return;
+      }
+      
+      const newItem = {
+        id: Date.now(),
+        name,
+        price,
+        stock,
+        image
+      };
+      products.push(newItem);
+      saveProducts();
+      populateProductAdmin();
+      form.reset();
     });
   }
 }
