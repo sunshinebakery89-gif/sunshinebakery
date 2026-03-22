@@ -443,7 +443,7 @@ async function syncProductsToFirestore() {
         name: product.name,
         price: product.price,
         image: product.image,
-        stock: product.stock, // Enforce binary stock value
+        stock: product.stock === 0 ? 0 : 1  // Enforce binary stock value
       };
       await setDoc(doc(db, 'products', String(product.id)), cleanProduct);
     }));
@@ -772,7 +772,12 @@ function addToCart(productId) {
     cartItemId: `${Date.now()}_${Math.random().toString(36).slice(2)}`
   };
 
+const existing = cart.find(i => i.id === productId);
+if (existing) {
+  existing.quantity += 1;
+} else {
   cart.push(cartItem);
+}
 
   saveCart();
   renderCart();
