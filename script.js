@@ -425,11 +425,17 @@ async function syncProductsToFirestore() {
     const remoteIds = new Set(productDocs.docs.map(d => d.id));
     const localIds = new Set(products.map(p => String(p.id)));
 
-    // Update or create each local product in Firestore
+    // Update or create each local product in Firestore with only essential fields
     await Promise.all(products.map(async (product) => {
-      await setDoc(doc(db, 'products', String(product.id)), {
-        ...product
-      });
+      // Ensure stock is binary (0 or 1) and send only essential fields
+      const cleanProduct = {
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        image: product.image,
+        stock: product.stock === 0 ? 0 : 1  // Enforce binary stock value
+      };
+      await setDoc(doc(db, 'products', String(product.id)), cleanProduct);
     }));
 
     // Remove deleted local products from Firestore
@@ -480,7 +486,17 @@ async function ensureFirestoreProductsSeeded() {
   const snapshot = await getDocs(productsCollection);
   if (snapshot.empty) {
     const initialProducts = getStoredProducts() || productData;
-    await Promise.all(initialProducts.map(product => setDoc(doc(db, 'products', String(product.id)), product)));
+    await Promise.all(initialProducts.map(product => {
+      // Ensure stock is binary and send only essential fields
+      const cleanProduct = {
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        image: product.image,
+        stock: product.stock === 0 ? 0 : 1  // Enforce binary stock value
+      };
+      return setDoc(doc(db, 'products', String(product.id)), cleanProduct);
+    }));
   }
 }
 
