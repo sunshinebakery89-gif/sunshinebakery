@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://sunshinebakery89-gif.github.io/sunshinebakery/sitemap.xml
